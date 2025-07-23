@@ -1,8 +1,8 @@
-FROM rockylinux:8
+FROM nvcr.io/nvidia/nvhpc:25.5-devel-cuda12.9-rockylinux9
 
 LABEL org.opencontainers.image.source="https://github.com/giovtorres/slurm-docker-cluster" \
       org.opencontainers.image.title="slurm-docker-cluster" \
-      org.opencontainers.image.description="Slurm Docker cluster on Rocky Linux 8" \
+      org.opencontainers.image.description="Slurm Docker cluster on Rocky Linux 9" \
       org.label-schema.docker.cmd="docker-compose up -d" \
       maintainer="Giovanni Torres"
 
