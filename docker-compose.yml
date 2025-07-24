@@ -14,7 +14,7 @@ services:
       - slurm-network
 
   slurmdbd:
-    image: slurm-docker-cluster:${IMAGE_TAG}
+    image: slurm-docker-cluster:21.08.6
     build:
       context: .
       args:
@@ -34,7 +34,7 @@ services:
       - slurm-network
 
   slurmctld:
-    image: slurm-docker-cluster:${IMAGE_TAG}
+    image: slurm-docker-cluster:21.08.6
     command: ["slurmctld"]
     container_name: slurmctld
     hostname: slurmctld
@@ -51,7 +51,7 @@ services:
       - slurm-network
 
   c1:
-    image: slurm-docker-cluster:${IMAGE_TAG}
+    image: slurm-docker-cluster:21.08.6
     command: ["slurmd"]
     hostname: c1
     container_name: c1
@@ -75,7 +75,7 @@ services:
               capabilities: [gpu]
 
   c2:
-    image: slurm-docker-cluster:${IMAGE_TAG}
+    image: slurm-docker-cluster:21.08.6
     command: ["slurmd"]
     hostname: c2
     container_name: c2
