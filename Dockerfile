@@ -10,7 +10,8 @@ RUN set -ex \
     && yum makecache \
     && yum -y update \
     && yum -y install dnf-plugins-core \
-    && yum config-manager --set-enabled powertools \
+    #&& yum config-manager --set-enabled powertools \
+    && yum config-manager --enable crb \
     && yum -y install \
        wget \
        bzip2 \
@@ -35,7 +36,7 @@ RUN set -ex \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-RUN alternatives --set python /usr/bin/python3
+#RUN alternatives --set python /usr/bin/python3
 
 RUN pip3 install Cython pytest
 
@@ -84,7 +85,15 @@ RUN set -x \
         /var/lib/slurmd/qos_usage \
         /var/lib/slurmd/fed_mgr_state \
     && chown -R slurm:slurm /var/*/slurm* \
-    && /sbin/create-munge-key
+    && /sbin/create-munge-key \
+    && chown -R root:root /etc/munge/ \
+    && chown 0:0 /etc/munge/munge.key \
+    && chown -R root:root /var/log/munge \
+    && chown -R root:root /var/lib/munge \
+    && chmod 600 /etc/munge/munge.key \
+    && chown -R root:root /run/munge
+
+RUN gosu root chown -R 0:0 /etc/munge/
 
 COPY slurm.conf /etc/slurm/slurm.conf
 COPY slurmdbd.conf /etc/slurm/slurmdbd.conf

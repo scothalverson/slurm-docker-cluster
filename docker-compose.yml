@@ -66,6 +66,13 @@ services:
       - "slurmctld"
     networks:
       - slurm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
 
   c2:
     image: slurm-docker-cluster:${IMAGE_TAG}
@@ -83,6 +90,13 @@ services:
       - "slurmctld"
     networks:
       - slurm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['1']
+              capabilities: [gpu]
 
 volumes:
   etc_munge:
