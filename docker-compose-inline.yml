@@ -15,7 +15,6 @@ services:
 
   slurmdbd: 
     build: &slurm_base
-      context: .
       args:
         SLURM_TAG: ${SLURM_TAG}
       dockerfile_inline: |
