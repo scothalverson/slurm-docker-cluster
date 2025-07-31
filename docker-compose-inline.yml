@@ -16,7 +16,7 @@ services:
   slurmdbd: 
     build: &slurm_base
       args:
-        SLURM_TAG: ${SLURM_TAG}
+        SLURM_TAG: slurm-21-08-6-1
       dockerfile_inline: |
         FROM nvcr.io/nvidia/nvhpc:25.5-devel-cuda12.9-rockylinux9
 
@@ -75,7 +75,7 @@ services:
         ARG SLURM_TAG
 
         RUN set -x \
-            && git clone -b ${SLURM_TAG} --single-branch --depth=1 https://github.com/SchedMD/slurm.git \
+            && git clone -b slurm-21-08-6-1 --single-branch --depth=1 https://github.com/SchedMD/slurm.git \
             && pushd slurm \
             && ./configure --enable-debug --prefix=/usr --sysconfdir=/etc/slurm \
                 --with-mysql_config=/usr/bin  --libdir=/usr/lib64 \
@@ -268,7 +268,8 @@ services:
       - slurm-network
 
   c1: &node_base
-    image: slurm-docker-cluster:${IMAGE_TAG}
+    build:
+      <<: *slurm_base
     command: ["slurmd"]
     hostname: c1
     container_name: c1
