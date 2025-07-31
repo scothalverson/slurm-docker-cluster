@@ -30,7 +30,6 @@ services:
             && yum makecache \
             && yum -y update \
             && yum -y install dnf-plugins-core \
-            #&& yum config-manager --set-enabled powertools \
             && yum config-manager --enable crb \
             && yum -y install \
                wget \
@@ -56,8 +55,6 @@ services:
             && yum clean all \
             && rm -rf /var/cache/yum
 
-        #RUN alternatives --set python /usr/bin/python3
-
         RUN pip3 install Cython pytest
 
         ARG GOSU_VERSION=1.17
@@ -71,8 +68,6 @@ services:
             && rm -rf "${GNUPGHOME}" /usr/local/bin/gosu.asc \
             && chmod +x /usr/local/bin/gosu \
             && gosu nobody true
-
-        ARG SLURM_TAG
 
         RUN set -x \
             && git clone -b slurm-21-08-6-1 --single-branch --depth=1 https://github.com/SchedMD/slurm.git \
@@ -115,127 +110,15 @@ services:
 
         RUN gosu root chown -R 0:0 /etc/munge/
 
-        #create slurm.conf
-        cat > /etc/slurm/slurm.conf <<EOF
-        ClusterName=linux
-        ControlMachine=slurmctld
-        ControlAddr=slurmctld
-        SlurmUser=slurm
-        SlurmctldPort=6817
-        SlurmdPort=6818
-        AuthType=auth/munge
-        StateSaveLocation=/var/lib/slurmd
-        SlurmdSpoolDir=/var/spool/slurmd
-        SwitchType=switch/none
-        MpiDefault=none
-        SlurmctldPidFile=/var/run/slurmd/slurmctld.pid
-        SlurmdPidFile=/var/run/slurmd/slurmd.pid
-        ProctrackType=proctrack/linuxproc
-        ReturnToService=0
-        SlurmctldTimeout=300
-        SlurmdTimeout=300
-        InactiveLimit=0
-        MinJobAge=300
-        KillWait=30
-        Waittime=0
-        SchedulerType=sched/backfill
-        SelectType=select/cons_res
-        SelectTypeParameters=CR_CPU_Memory
-        FastSchedule=1
-        SlurmctldDebug=3
-        SlurmctldLogFile=/var/log/slurm/slurmctld.log
-        SlurmdDebug=3
-        SlurmdLogFile=/var/log/slurm/slurmd.log
-        JobCompType=jobcomp/filetxt
-        JobCompLoc=/var/log/slurm/jobcomp.log
-        JobAcctGatherType=jobacct_gather/linux
-        JobAcctGatherFrequency=30
-        AccountingStorageType=accounting_storage/slurmdbd
-        AccountingStorageHost=slurmdbd
-        AccountingStoragePort=6819
-        NodeName=c[1-2] RealMemory=1000 State=UNKNOWN
-        PartitionName=normal Default=yes Nodes=c[1-2] Priority=50 DefMemPerCPU=500 Shared=NO MaxNodes=2 MaxTime=5-00:00:00 DefaultTime=5-00:00:00 State=UP
-        EOF
-
-
-
-        #create slurmdbd.conf
-        cat > /etc/slurm/slurmdbd.conf <<EOF
-        AuthType=auth/munge
-        DbdAddr=slurmdbd
-        DbdHost=slurmdbd
-        SlurmUser=slurm
-        DebugLevel=4
-        LogFile=/var/log/slurm/slurmdbd.log
-        PidFile=/var/run/slurmdbd/slurmdbd.pid
-        StorageType=accounting_storage/mysql
-        StorageHost=mysql
-        StorageUser=slurm
-        StoragePass=password
-        EOF
-
-        RUN set -x \
-            && chown slurm:slurm /etc/slurm/slurmdbd.conf \
-            && chmod 600 /etc/slurm/slurmdbd.conf
-
-
-        #create entrypoint script
-        cat > /usr/local/bin/docker-entrypoint.sh <<EOF
-        #!/bin/bash
-        set -e
-        if [ "$1" = "slurmdbd" ]
-        then
-            echo "---> Starting the MUNGE Authentication service (munged) ..."
-            gosu root /usr/sbin/munged
-            echo "---> Starting the Slurm Database Daemon (slurmdbd) ..."
-            {
-                . /etc/slurm/slurmdbd.conf
-                until echo "SELECT 1" | mysql -h $StorageHost -u$StorageUser -p$StoragePass 2>&1 > /dev/null
-                do
-                    echo "-- Waiting for database to become active ..."
-                    sleep 2
-                done
-            }
-            echo "-- Database is now active ..."
-            exec gosu slurm /usr/sbin/slurmdbd -Dvvv
-        fi
-        if [ "$1" = "slurmctld" ]
-        then
-            echo "---> Starting the MUNGE Authentication service (munged) ..."
-            gosu root /usr/sbin/munged
-            echo "---> Waiting for slurmdbd to become active before starting slurmctld ..."
-            until 2>/dev/null >/dev/tcp/slurmdbd/6819
-            do
-                echo "-- slurmdbd is not available.  Sleeping ..."
-                sleep 2
-            done
-            echo "-- slurmdbd is now active ..."
-            echo "---> Starting the Slurm Controller Daemon (slurmctld) ..."
-            if /usr/sbin/slurmctld -V | grep -q '17.02' ; then
-                exec gosu slurm /usr/sbin/slurmctld -Dvvv
-            else
-                exec gosu slurm /usr/sbin/slurmctld -i -Dvvv
-            fi
-        fi
-        if [ "$1" = "slurmd" ]
-        then
-            echo "---> Starting the MUNGE Authentication service (munged) ..."
-            gosu root /usr/sbin/munged
-            echo "---> Waiting for slurmctld to become active before starting slurmd..."
-            until 2>/dev/null >/dev/tcp/slurmctld/6817
-            do
-                echo "-- slurmctld is not available.  Sleeping ..."
-                sleep 2
-            done
-            echo "-- slurmctld is now active ..."
-
-            echo "---> Starting the Slurm Node Daemon (slurmd) ..."
-            exec /usr/sbin/slurmd -Dvvv
-        fi
-        exec "$@"
-        EOF
-        ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-    command: ["slurmdbd"]
+        #download slurm.conf
+        ADD https://raw.githubusercontent.com/scothalverson/slurm-docker-cluster/refs/heads/main/slurm.conf /etc/slurm/slurm.conf
+        #download slurmdbd.con
+        ADD https://raw.githubusercontent.com/scothalverson/slurm-docker-cluster/refs/heads/main/slurmdbd.conf /etc/slurm/slurmdbd.conf
+        #download entrypoint script
+        ADD https://raw.githubusercontent.com/scothalverson/slurm-docker-cluster/refs/heads/main/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
+        RUN gosu root chown 0:0 /usr/local/bin/entrypoint.sh
+        RUN gosu root chmod -R 755 /usr/local/bin/entrypoint.sh
+    command: ["/usr/local/bin/entrypoint.sh","slurmdbd"]
     container_name: slurmdbd
     hostname: slurmdbd
     volumes:
